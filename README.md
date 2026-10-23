@@ -8,22 +8,48 @@ Search and ask questions about General Conference talks (2015–2019). Three way
 
 ---
 
+## Deliverables
+
+### GitHub repository
+https://github.com/jrj221/conference-rag
+
+### Live deployment
+https://jrj221.github.io/conference-rag/
+
+### Working RAG query and answer
+I asked "How can I forgive?" in the **Ask (RAG)** tab. The answer is built only from the retrieved talks, and it names the talk and speaker it used, here Elder Kevin R. Duncan's "The Healing Ointment of Forgiveness."
+
+![Ask (RAG) tab answering "How can I forgive?" with citations to a conference talk](docs/screenshots/rag-query-and-answer.png)
+
+### Custom feature: question history
+I added a **History** tab that saves every question I ask in the Ask (RAG) tab, along with its answer and the talks it was based on. I wanted users to be able to come back to questions they had asked in the past and keep the talk references, instead of having to ask again if they have the same question or want to reconsult the information. It also saves time and OpenAI cost, since reopening a saved answer doesn't call the model again.
+
+![History tab listing past questions with timestamps](docs/screenshots/question-history.png)
+
+How it works:
+
+- Each answer is saved to a new Supabase table, `question_history` (question, answer, the list of source talks, and a timestamp).
+- The table is private per user with Row Level Security: policies compare each row's `user_id` with the signed-in user, so people can only read, add, or delete their own history.
+- Questions persist across sessions and devices because they live in the database, not in the browser. Each entry expands to show the answer and its sources, and can be deleted.
+
+---
+
 ## 1. Security Architecture
 
 ```
-                          ┌──────────────────────────── Supabase ────────────────────────────┐
- Browser (React)          │                                                                   │
- holds only:              │   Auth ──▶ magic link ──▶ user JWT                                │
-  • anon key              │                                                                   │
-  • user's JWT   ─────────┼─▶ Postgres ── grants + Row Level Security (per role / per user)   │
-                          │                                                                   │
-                ─────────┼─▶ Edge Function ── verifies JWT ──▶ OpenAI                         │
-                          │        ▲                                                          │
-                          │        └── OPENAI_API_KEY (Supabase secret, env variable)         │
-                          └───────────────────────────────────────────────────────────────────┘
+ Browser (React app)                          Supabase
+ holds only:                      +-----------------------------------------+
+   - anon key          -------->  | Auth: magic link -> user JWT            |
+   - user's JWT        -------->  | Postgres: grants + Row Level Security   |
+                       -------->  | Edge Function: verifies JWT --> OpenAI  |
+                                  |      ^                                  |
+                                  |      +-- OPENAI_API_KEY (secret / env)  |
+                                  +-----------------------------------------+
 
- My laptop only (git-ignored config.secret.json): service/secret key, access token, OpenAI key
+ My laptop only (git-ignored config.secret.json):
+   service/secret key, access token, OpenAI key
 ```
+
 
 | Asset | What protects it |
 |---|---|
@@ -48,11 +74,12 @@ Search and ask questions about General Conference talks (2015–2019). Three way
 Anything in the browser can be read by the user: the JavaScript, the network requests, the keys. If the browser called OpenAI directly, my OpenAI key would be visible to anyone with DevTools, and an attacker could use it to spend all my money. Supabase's RLS protects my *database*, but it cannot protect a *third-party* key like OpenAI's, so I had to build a secure layer myself.
 
 ```
-Browser ──(question + user's JWT)──▶ Edge Function ──(OPENAI_API_KEY)──▶ OpenAI
-   ▲                                       │ 1. verify the JWT with Supabase Auth
-   └──────────(embedding / answer)─────────┘ 2. validate the input
-                                             3. call OpenAI
+Browser --(question + user's JWT)--> Edge Function --(OPENAI_API_KEY)--> OpenAI
+   ^                                    |  1. verify the JWT with Supabase Auth
+   +--------(embedding / answer)--------+  2. validate the input
+                                           3. call OpenAI
 ```
+
 
 When I'm signed in, the browser sends my JWT in the `Authorization` header. The function checks it with Supabase Auth before doing anything. Without that check, anyone who found the function's URL could call it and run up my OpenAI bill. I tested this: requests with no login, or with only the public anon key, get a 401.
 
@@ -94,6 +121,7 @@ When I'm signed in, the browser sends my JWT in the `Authorization` header. The 
 The AI helped me break the assignment into steps, explained the concepts behind each one (JWTs, RLS, embeddings, edge functions), and wrote and ran most of the scripts and the frontend. It is good at explaining things and rephrasing when I had follow-up questions.
 
 I did have to guide it in several places:
+
 - **Search modes.** It first added an "exact phrase" tab next to keyword search. I pushed back that those two are basically the same, and we changed the tabs to Keyword, Semantic, and Ask (RAG).
 - **The `page_views` table.** It seeded the table with fake rows, and I questioned why, because I thought the site should log real visits. It turned out the seed was a guess on its part and not in the assignment.
 - **Storage limits.** When Supabase emailed me that I was over the free storage limit, I decided to delete half the data, and we kept only the 2015–2019 conferences. The project also had to be rebuilt on a new Supabase project after the database went down.
