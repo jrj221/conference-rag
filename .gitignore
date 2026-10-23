@@ -1,0 +1,26 @@
+# --- Secrets: never commit ---
+config.secret.json
+.env
+.env.*
+*.env
+secrets.env
+
+# --- Generated data (large; the OpenAI embeddings file is ~400 MB) ---
+scripts/output/
+data/
+*.f32
+
+# --- Supabase CLI local state ---
+supabase/.temp/
+supabase/.branches/
+
+# --- Dependencies / build output ---
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.venv/
+
+# --- OS / editor ---
+.DS_Store
+.vscode/
