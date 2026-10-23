@@ -1,6 +1,8 @@
 # Conference Talk RAG
 
-Search and ask questions about General Conference talks (2015–2019). Three ways to search: **keyword**, **semantic** (embeddings), and **Ask (RAG)**, which answers with GPT-4o and cites the talks it used. Logged-in users also get a **History** tab of their past RAG questions.
+**Live site:** https://jrj221.github.io/conference-rag/
+
+Search and ask questions about General Conference talks (2015–2019). Three ways to search: **keyword**, **semantic** (embeddings), and **Ask (RAG)**, which answers with GPT-4o and cites the talks it used. Logged-in users also get a **History** tab of their past RAG questions. Anyone can open the site and browse the tabs (each tab view is logged to a public `page_views` table), but searching and history are rejected by the database unless you are signed in.
 
 **Stack:** React + TypeScript (Vite) · Supabase (Postgres + pgvector, Auth, Edge Functions) · OpenAI (`text-embedding-3-small`, `gpt-4o`)
 

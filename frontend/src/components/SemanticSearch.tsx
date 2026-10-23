@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { semanticSearch, type SentenceHit } from '../lib/api'
+import { semanticSearch, type SentenceHit, explainError } from '../lib/api'
 
 export default function SemanticSearch() {
   const [query, setQuery] = useState('')
@@ -14,7 +14,7 @@ export default function SemanticSearch() {
     try {
       setResults(await semanticSearch(query))
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Search failed')
+      setError(explainError(err))
     } finally {
       setLoading(false)
     }

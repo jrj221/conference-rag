@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import { deleteHistory, loadHistory, type HistoryEntry } from '../lib/api'
+import { deleteHistory, explainError, loadHistory, type HistoryEntry } from '../lib/api'
 
 export default function History() {
   const [entries, setEntries] = useState<HistoryEntry[] | null>(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    loadHistory().then(setEntries).catch((e) => setError(e instanceof Error ? e.message : 'Could not load history'))
+    loadHistory().then(setEntries).catch((e) => setError(explainError(e)))
   }, [])
 
   async function remove(id: string) {
@@ -14,7 +14,7 @@ export default function History() {
       await deleteHistory(id)
       setEntries((prev) => prev?.filter((e) => e.id !== id) ?? null)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not delete')
+      setError(explainError(e))
     }
   }
 

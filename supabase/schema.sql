@@ -59,7 +59,8 @@ $$;
 grant select, insert, update, delete on talks, sentence_embeddings, page_views to service_role;
 grant usage, select on all sequences in schema public to service_role;
 grant select on talks, sentence_embeddings to authenticated;
-grant select on page_views to anon, authenticated;
+grant select, insert on page_views to anon, authenticated;
+grant usage on sequence page_views_id_seq to anon, authenticated;
 grant execute on function match_sentences(vector, int) to authenticated, service_role;
 
 -- Row Level Security: on everywhere. The service_role key (used by scripts) bypasses it.
@@ -70,6 +71,13 @@ alter table page_views          enable row level security;
 drop policy if exists "public read page_views" on page_views;
 create policy "public read page_views"
   on page_views for select to anon, authenticated using (true);
+
+-- Anyone (even logged out) may LOG a visit, but only for one of the app's tabs, so the
+-- public insert can't be used to stuff arbitrary text into the table.
+drop policy if exists "public log page_views" on page_views;
+create policy "public log page_views"
+  on page_views for insert to anon, authenticated
+  with check (page in ('keyword', 'semantic', 'rag', 'history'));
 
 drop policy if exists "authenticated read talks" on talks;
 create policy "authenticated read talks"

@@ -139,3 +139,38 @@ export async function deleteHistory(id: string) {
   const { error } = await supabase.from('question_history').delete().eq('id', id)
   if (error) throw error
 }
+
+// ---- Page view logging: public on purpose (anon can insert/read page_views) ----
+export type PageName = 'keyword' | 'semantic' | 'rag' | 'history'
+
+export async function logPageView(page: PageName) {
+  const { error } = await supabase.from('page_views').insert({ page })
+  if (error) throw error
+}
+
+export interface PageView {
+  id: number
+  page: string
+  viewed_at: string
+}
+
+export async function loadRecentViews(limit = 8): Promise<{ total: number; recent: PageView[] }> {
+  const { data, count, error } = await supabase
+    .from('page_views')
+    .select('id, page, viewed_at', { count: 'exact' })
+    .order('viewed_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return { total: count ?? 0, recent: data as PageView[] }
+}
+
+// Turns "permission denied" / 401 failures (what RLS and grants produce for visitors who
+// aren't signed in) into an explanation, and keeps the raw error visible for learning.
+export function explainError(err: unknown): string {
+  const e = err as { message?: string; code?: string; context?: { status?: number } }
+  const raw = e?.message ?? 'Something went wrong'
+  const denied = e?.code === '42501' || e?.context?.status === 401 || /permission denied/i.test(raw)
+  return denied
+    ? `Sign in required. The server rejected this request because visitors who aren't signed in have no access to it. (${raw})`
+    : raw
+}

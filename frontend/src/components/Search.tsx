@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { askQuestion, saveHistory, type Talk } from '../lib/api'
+import { askQuestion, saveHistory, type Talk, explainError } from '../lib/api'
 
 export default function Search() {
   const [question, setQuestion] = useState('')
@@ -19,7 +19,7 @@ export default function Search() {
       // A failed save shouldn't hide an answer the user already has
       saveHistory(question, result.answer, result.talks).catch((e) => console.error('Could not save history', e))
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setError(explainError(err))
     } finally {
       setLoading(false)
     }

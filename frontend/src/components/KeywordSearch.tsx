@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { keywordSearch, type SentenceResult } from '../lib/api'
+import { keywordSearch, type SentenceResult, explainError } from '../lib/api'
 
 // Wrap each search word in <mark> so you can see WHY a sentence matched
 function highlight(text: string, words: string[]) {
@@ -25,7 +25,7 @@ export default function KeywordSearch() {
       setResults(await keywordSearch(query))
       setSearched(query)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Search failed')
+      setError(explainError(err))
     } finally {
       setLoading(false)
     }
